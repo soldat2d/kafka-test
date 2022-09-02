@@ -16,7 +16,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
@@ -27,23 +26,24 @@ public class KafkaTestApplication {
         SpringApplication.run(KafkaTestApplication.class, args);
         var topic = "kafka-test";
 
+        var consumer = new MyConsumer(topic);
+        consumer.consume(record -> System.out.println("key: " + record.key() + "  value: " + record.value()));
+
         var producer = new MyProducer(topic);
-        new Thread(() -> {
+        var thread = new Thread(() -> {
             IntStream.range(0, 10).forEach(i -> {
                 try {
-                    System.out.println("SENDING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                    System.out.println("producer send " + i);
                     producer.send(Integer.toString(i), "producer send " + i);
-                    TimeUnit.SECONDS.sleep(1);
+                    Thread.sleep(5000);
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             });
-        }).start();
+        });
+        thread.start();
+        thread.join();
 
-        var consumer = new MyConsumer(topic);
-        consumer.consume(record -> System.out.println("key: " + record.key() + "  value: " + record.value()));
-
-        TimeUnit.SECONDS.sleep(500);
         producer.close();
         consumer.close();
     }
